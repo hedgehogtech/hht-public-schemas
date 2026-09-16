@@ -1,0 +1,253 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/hedgehogtech/hht-public-schemas/main/json/hhtproject/v1/hhtproject.schema.json",
+  "title": "HHT project manifest",
+  "description": "Machine-readable configuration for one HHT repository. It holds only the facts that differ between repositories: identity, work tracker, design location, and Git workflow. Anything identical in every repository is a constant held by the skill that owns it, not a field here. The nearest hhtproject.json up the directory tree wins, which is what makes a monorepo work.",
+  "type": "object",
+  "required": [
+    "schemaVersion",
+    "repository",
+    "projectType",
+    "disciplines",
+    "harnesses",
+    "design",
+    "gitWorkflow"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "$schema": {
+      "description": "Optional pointer to this schema, so an editor can validate the manifest while it is being written. It is the one key allowed outside the schema's own properties.",
+      "type": "string"
+    },
+    "schemaVersion": {
+      "description": "Version of this manifest format. A reader checks it before anything else, so a manifest written by a newer hht is reported as a version mismatch rather than as a list of unknown keys.",
+      "type": "integer",
+      "const": 1
+    },
+    "repository": {
+      "description": "Source repository as owner/name on GitHub, for example hedgehogtech/hht-marketplace.",
+      "type": "string",
+      "minLength": 1
+    },
+    "projectType": {
+      "description": "What kind of engineering this repository holds. It is a human record and the setup-time switch for which sections get written; nothing reads it at runtime.",
+      "type": "string",
+      "enum": ["software", "electrical", "mechanical", "multidisciplinary", "general"]
+    },
+    "disciplines": {
+      "description": "Engineering disciplines this repository includes. Required and non-empty only when projectType is multidisciplinary; an empty array everywhere else.",
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "description": "One engineering discipline included in this repository.",
+        "type": "string",
+        "enum": ["software", "electrical", "mechanical"]
+      }
+    },
+    "harnesses": {
+      "description": "Agent harnesses configured for this repository. Each one has its own always-loaded instruction file, CLAUDE.md for claude and AGENTS.md for codex.",
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "description": "One configured agent harness.",
+        "type": "string",
+        "enum": ["claude", "codex"]
+      }
+    },
+    "tracker": {
+      "description": "Where work items live. Required when the project includes software, and absent otherwise, because a repository with no software work has no implementation tickets to route.",
+      "type": "object",
+      "required": ["kind"],
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "description": "Which tracker holds work items: jira for an HHT Jira project, local for a TODO.md in the repository root.",
+          "type": "string",
+          "enum": ["jira", "local"]
+        },
+        "site": {
+          "description": "Atlassian site URL hosting the Jira project. Required for kind jira.",
+          "type": "string"
+        },
+        "projectKey": {
+          "description": "Jira project key, for example HHTAI. Required for kind jira.",
+          "type": "string"
+        },
+        "projectId": {
+          "description": "Numeric Jira project ID as a string. Required for kind jira, because a key can be renamed and an ID cannot.",
+          "type": "string"
+        },
+        "boardId": {
+          "description": "Numeric Jira board ID as a string. A board is a view and can span projects, so it never identifies the project on its own. Required for kind jira.",
+          "type": "string"
+        },
+        "issueTypes": {
+          "description": "Jira issue type IDs for this project. HHT uses standard types only and never creates subtasks. Required for kind jira.",
+          "type": "object",
+          "required": ["epic", "task", "bug"],
+          "additionalProperties": false,
+          "properties": {
+            "epic": {
+              "description": "Issue type ID for an Epic, the parent of an approved specification's implementation work.",
+              "type": "string"
+            },
+            "task": {
+              "description": "Issue type ID for a Task, used for implementation and decision tickets.",
+              "type": "string"
+            },
+            "bug": {
+              "description": "Issue type ID for a Bug.",
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "design": {
+      "description": "Where canonical design documents live. Specifications are not configured here: SPEC.md in the repository is fixed by ADR 0002.",
+      "type": "object",
+      "required": ["store"],
+      "additionalProperties": false,
+      "properties": {
+        "store": {
+          "description": "Which store holds design documents: confluence for an HHT space, markdown for docs/design/ in this repository.",
+          "type": "string",
+          "enum": ["confluence", "markdown"]
+        },
+        "spaceKey": {
+          "description": "Confluence space key, for example HHT. Required for store confluence.",
+          "type": "string"
+        },
+        "spaceUrl": {
+          "description": "Confluence space URL. Required for store confluence.",
+          "type": "string"
+        },
+        "designRoot": {
+          "description": "URL of the design root that covers the whole programme this repository belongs to. Required for store confluence.",
+          "type": "string"
+        },
+        "repositoryFolder": {
+          "description": "URL of this repository's own folder beneath the design root. Required for store confluence.",
+          "type": "string"
+        }
+      }
+    },
+    "gitWorkflow": {
+      "description": "Which remote-visible Git actions an agent may take in this repository. The guardrail hook reads this section; a missing or invalid manifest denies every push.",
+      "type": "object",
+      "required": ["preset", "defaultBranch", "protectedBranches"],
+      "additionalProperties": false,
+      "properties": {
+        "preset": {
+          "description": "Autonomous push scope: client for a repository a client or external party sees, team for a Hedgehog internal repository, solo for a personal one. Opening a pull request always asks, and merging and force-pushing are always denied.",
+          "type": "string",
+          "enum": ["client", "team", "solo"]
+        },
+        "defaultBranch": {
+          "description": "Branch a clone checks out, for example main. It is always protected, so it must appear in protectedBranches.",
+          "type": "string",
+          "minLength": 1
+        },
+        "protectedBranches": {
+          "description": "Integration branches nobody pushes to directly outside the solo preset. Listed explicitly rather than inferred, so the hook and the prose cannot disagree about what is protected. It must contain defaultBranch, which JSON Schema cannot express because it compares two instance locations, so the readers and check_sync.py enforce that one rule.",
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "description": "One protected branch name.",
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    }
+  },
+  "allOf": [
+    {
+      "description": "Multidisciplinary projects name the disciplines they include.",
+      "if": {
+        "properties": { "projectType": { "const": "multidisciplinary" } },
+        "required": ["projectType"]
+      },
+      "then": { "properties": { "disciplines": { "minItems": 1 } } }
+    },
+    {
+      "description": "A project that includes software tracks work somewhere; one that does not has no tracker at all.",
+      "if": {
+        "anyOf": [
+          {
+            "properties": { "projectType": { "const": "software" } },
+            "required": ["projectType"]
+          },
+          {
+            "properties": {
+              "projectType": { "const": "multidisciplinary" },
+              "disciplines": { "contains": { "const": "software" } }
+            },
+            "required": ["projectType", "disciplines"]
+          }
+        ]
+      },
+      "then": { "required": ["tracker"] },
+      "else": { "not": { "required": ["tracker"] } }
+    },
+    {
+      "description": "A Jira tracker carries the identifiers needed to reach the project; a local one carries none of them.",
+      "if": {
+        "properties": { "tracker": { "properties": { "kind": { "const": "jira" } } } },
+        "required": ["tracker"]
+      },
+      "then": {
+        "properties": {
+          "tracker": {
+            "required": ["site", "projectKey", "projectId", "boardId", "issueTypes"]
+          }
+        }
+      },
+      "else": {
+        "properties": {
+          "tracker": {
+            "not": {
+              "anyOf": [
+                { "required": ["site"] },
+                { "required": ["projectKey"] },
+                { "required": ["projectId"] },
+                { "required": ["boardId"] },
+                { "required": ["issueTypes"] }
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "description": "A Confluence design store carries the space and page identifiers; a Markdown one carries none of them.",
+      "if": {
+        "properties": { "design": { "properties": { "store": { "const": "confluence" } } } },
+        "required": ["design"]
+      },
+      "then": {
+        "properties": {
+          "design": {
+            "required": ["spaceKey", "spaceUrl", "designRoot", "repositoryFolder"]
+          }
+        }
+      },
+      "else": {
+        "properties": {
+          "design": {
+            "not": {
+              "anyOf": [
+                { "required": ["spaceKey"] },
+                { "required": ["spaceUrl"] },
+                { "required": ["designRoot"] },
+                { "required": ["repositoryFolder"] }
+              ]
+            }
+          }
+        }
+      }
+    }
+  ]
+}
