@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://raw.githubusercontent.com/hedgehogtech/hht-public-schemas/main/json/hhtproject/v1/hhtproject.schema.json",
+  "$id": "https://raw.githubusercontent.com/hedgehogtech/hht-public-schemas/refs/heads/main/json/hhtproject/v1/hhtproject.schema.json",
   "title": "HHT project manifest",
   "description": "Machine-readable configuration for one HHT repository. It holds only the facts that differ between repositories: identity, work tracker, design location, and Git workflow. Anything identical in every repository is a constant held by the skill that owns it, not a field here. The nearest hhtproject.json up the directory tree wins, which is what makes a monorepo work.",
   "type": "object",
