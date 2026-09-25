@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://raw.githubusercontent.com/hedgehogtech/hht-public-schemas/refs/heads/main/json/hhtproject/v2/hhtproject.schema.json",
   "title": "HHT project manifest",
-  "description": "Machine-readable configuration for one HHT repository. It holds only the facts that differ between repositories: identity, work tracker, documentation mirrors, and Git workflow. Anything identical in every repository is a constant held by the skill that owns it, not a field here. The nearest hhtproject.json up the directory tree wins, which is what makes a monorepo work.",
+  "description": "Machine-readable configuration for one HHT repository. It holds only the facts that differ between repositories: identity, work tracker, documentation locations, and Git workflow. Anything identical in every repository is a constant held by the skill that owns it, not a field here. The nearest hhtproject.json up the directory tree wins, which is what makes a monorepo work.",
   "type": "object",
   "required": ["schemaVersion", "repository", "projectType", "disciplines", "harnesses", "documentation", "gitWorkflow"],
   "additionalProperties": false,
@@ -54,9 +54,14 @@
       "additionalProperties": false,
       "properties": {
         "kind": {
-          "description": "Which tracker holds work items: jira for an HHT Jira project, local for one file per work item under docs/tasks/ in the repository.",
+          "description": "Which tracker holds work items: jira for an HHT Jira project, local for one file per work item in tasksSubfolder in the repository.",
           "type": "string",
           "enum": ["jira", "local"]
+        },
+        "tasksSubfolder": {
+          "description": "Folder holding one file per work item, as a path under the local documentation entry's rootFolder that defaults to tasks/, so docs/tasks/ when nothing else is set. Only for kind local.",
+          "type": "string",
+          "pattern": "^[A-Za-z0-9_-][A-Za-z0-9._-]*(/[A-Za-z0-9_-][A-Za-z0-9._-]*)*/?$"
         },
         "site": {
           "description": "Atlassian site URL hosting the Jira project. Required for kind jira.",
@@ -97,47 +102,182 @@
       }
     },
     "documentation": {
-      "description": "Confluence spaces that mirror this repository's documents. The repository copy under docs/ is always the source: specifications in docs/specs/, designs in docs/design/, and plans in docs/plans/. Every entry is synced, so a document published from the repository goes to each entry, not to one chosen among them. An empty array means the documents live in the repository only.",
+      "description": "Where this repository's documents live. Exactly one entry is kind local, the repository tree the workflow skills write and read. Every other entry is a Confluence mirror of it. All entries are synced, so a document published from the repository goes to each mirror, not to one chosen among them. Every folder is a subfolder of the entry's rootFolder, and a local entry that names none is the docs/ tree.",
       "type": "array",
       "uniqueItems": true,
       "items": {
-        "description": "One Confluence space and the folders in it that receive this repository's documents.",
+        "description": "One documentation location: the repository tree, or a Confluence space and the folders in it.",
         "type": "object",
-        "required": ["kind", "site", "spaceKey", "documentationFolder"],
+        "required": ["kind"],
         "additionalProperties": false,
         "properties": {
           "kind": {
-            "description": "Which store the entry names. confluence is the only one; the field exists so another store can be added without reshaping the entries already written.",
+            "description": "Which store the entry names: local for folders in this repository, confluence for a Confluence space.",
             "type": "string",
-            "enum": ["confluence"]
+            "enum": ["local", "confluence"]
+          },
+          "rootFolder": {
+            "description": "The folder every subfolder is under. For kind local, a repository-relative folder that defaults to docs/. For kind confluence, the numeric content ID, as a string, of the folder in the space, and required.",
+            "type": "string",
+            "minLength": 1
+          },
+          "specsSubfolder": {
+            "description": "Where specifications go, as a path under rootFolder that defaults to specs/. For kind local, repository folder names, where to-spec writes and to-plan reads. For kind confluence, the titles of nested Confluence folders, which receive the published copy.",
+            "type": "string",
+            "minLength": 1
+          },
+          "plansSubfolder": {
+            "description": "Where plans go, as a path under rootFolder that defaults to plans/. For kind local, repository folder names, where to-plan writes. For kind confluence, the titles of nested Confluence folders, which receive the published copy.",
+            "type": "string",
+            "minLength": 1
+          },
+          "designsSubfolder": {
+            "description": "Where design documents go, as a path under rootFolder that defaults to designs/. For kind local, repository folder names, where hht-style-design-doc writes. For kind confluence, the titles of nested Confluence folders, which receive the published copy.",
+            "type": "string",
+            "minLength": 1
+          },
+          "decisionsSubfolder": {
+            "description": "Where decision records go, as a path under rootFolder that defaults to decisions/. For kind local, repository folder names, where domain-modeling writes. For kind confluence, the titles of nested Confluence folders, which receive the published copy.",
+            "type": "string",
+            "minLength": 1
+          },
+          "researchSubfolder": {
+            "description": "Where research notes go, as a path under rootFolder that defaults to research/. Repository folder names, where research writes. Only for kind local: these notes are not published.",
+            "type": "string",
+            "minLength": 1
+          },
+          "ideasSubfolder": {
+            "description": "Where refined ideas go, as a path under rootFolder that defaults to ideas/. Repository folder names, where idea-refine writes. Only for kind local: these notes are not published.",
+            "type": "string",
+            "minLength": 1
+          },
+          "outOfScopeSubfolder": {
+            "description": "Where out-of-scope notes go, as a path under rootFolder that defaults to out-of-scope/. Repository folder names, where triage writes. Only for kind local: these notes are not published.",
+            "type": "string",
+            "minLength": 1
           },
           "site": {
-            "description": "Atlassian site URL hosting the Confluence space, for example https://hedgehogtech-team-001.atlassian.net.",
+            "description": "Atlassian site URL hosting the Confluence space, for example https://hedgehogtech-team-001.atlassian.net. Required for kind confluence.",
             "type": "string",
             "minLength": 1
           },
           "spaceKey": {
-            "description": "Confluence space key, for example HHT: ASCII letters and digits, with a leading tilde for a personal space.",
+            "description": "Confluence space key, for example HHT: ASCII letters and digits, with a leading tilde for a personal space. Required for kind confluence.",
             "type": "string",
-            "pattern": "^~?[A-Za-z0-9]+$"
-          },
-          "documentationFolder": {
-            "description": "Numeric Confluence content ID, as a string, of this repository's documentation folder. A document with no more specific folder below is published here.",
-            "type": "string",
-            "pattern": "^[0-9]+$"
-          },
-          "specsFolder": {
-            "description": "Numeric Confluence content ID, as a string, of the folder that receives published specifications. The repository copy in docs/specs/ remains the one to-spec writes and to-plan reads. When absent, specifications go to documentationFolder.",
-            "type": "string",
-            "pattern": "^[0-9]+$"
-          },
-          "designsFolder": {
-            "description": "Numeric Confluence content ID, as a string, of the folder that receives published design documents. When absent, designs go to documentationFolder.",
-            "type": "string",
-            "pattern": "^[0-9]+$"
+            "minLength": 1
           }
-        }
-      }
+        },
+        "allOf": [
+          {
+            "description": "A local entry names repository folders and carries no Confluence identifier.",
+            "if": {
+              "properties": {
+                "kind": {
+                  "const": "local"
+                }
+              },
+              "required": ["kind"]
+            },
+            "then": {
+              "properties": {
+                "rootFolder": {
+                  "pattern": "^[A-Za-z0-9_-][A-Za-z0-9._-]*(/[A-Za-z0-9_-][A-Za-z0-9._-]*)*/?$"
+                },
+                "specsSubfolder": {
+                  "pattern": "^[A-Za-z0-9_-][A-Za-z0-9._-]*(/[A-Za-z0-9_-][A-Za-z0-9._-]*)*/?$"
+                },
+                "plansSubfolder": {
+                  "pattern": "^[A-Za-z0-9_-][A-Za-z0-9._-]*(/[A-Za-z0-9_-][A-Za-z0-9._-]*)*/?$"
+                },
+                "designsSubfolder": {
+                  "pattern": "^[A-Za-z0-9_-][A-Za-z0-9._-]*(/[A-Za-z0-9_-][A-Za-z0-9._-]*)*/?$"
+                },
+                "decisionsSubfolder": {
+                  "pattern": "^[A-Za-z0-9_-][A-Za-z0-9._-]*(/[A-Za-z0-9_-][A-Za-z0-9._-]*)*/?$"
+                },
+                "researchSubfolder": {
+                  "pattern": "^[A-Za-z0-9_-][A-Za-z0-9._-]*(/[A-Za-z0-9_-][A-Za-z0-9._-]*)*/?$"
+                },
+                "ideasSubfolder": {
+                  "pattern": "^[A-Za-z0-9_-][A-Za-z0-9._-]*(/[A-Za-z0-9_-][A-Za-z0-9._-]*)*/?$"
+                },
+                "outOfScopeSubfolder": {
+                  "pattern": "^[A-Za-z0-9_-][A-Za-z0-9._-]*(/[A-Za-z0-9_-][A-Za-z0-9._-]*)*/?$"
+                }
+              },
+              "not": {
+                "anyOf": [
+                  {
+                    "required": ["site"]
+                  },
+                  {
+                    "required": ["spaceKey"]
+                  }
+                ]
+              }
+            }
+          },
+          {
+            "description": "A Confluence entry names its site, space, and root folder by content ID, its subfolders by title, and only the subfolders of documents that are published.",
+            "if": {
+              "properties": {
+                "kind": {
+                  "const": "confluence"
+                }
+              },
+              "required": ["kind"]
+            },
+            "then": {
+              "required": ["site", "spaceKey", "rootFolder"],
+              "properties": {
+                "rootFolder": {
+                  "pattern": "^[0-9]+$"
+                },
+                "spaceKey": {
+                  "pattern": "^~?[A-Za-z0-9]+$"
+                },
+                "specsSubfolder": {
+                  "pattern": "^[^/\\s.][^/]*(/[^/\\s.][^/]*)*/?$"
+                },
+                "plansSubfolder": {
+                  "pattern": "^[^/\\s.][^/]*(/[^/\\s.][^/]*)*/?$"
+                },
+                "designsSubfolder": {
+                  "pattern": "^[^/\\s.][^/]*(/[^/\\s.][^/]*)*/?$"
+                },
+                "decisionsSubfolder": {
+                  "pattern": "^[^/\\s.][^/]*(/[^/\\s.][^/]*)*/?$"
+                }
+              },
+              "not": {
+                "anyOf": [
+                  {
+                    "required": ["researchSubfolder"]
+                  },
+                  {
+                    "required": ["ideasSubfolder"]
+                  },
+                  {
+                    "required": ["outOfScopeSubfolder"]
+                  }
+                ]
+              }
+            }
+          }
+        ]
+      },
+      "minItems": 1,
+      "contains": {
+        "description": "The one local entry.",
+        "properties": {
+          "kind": {
+            "const": "local"
+          }
+        },
+        "required": ["kind"]
+      },
+      "minContains": 1,
+      "maxContains": 1
     },
     "gitWorkflow": {
       "description": "Which remote-visible Git actions an agent may take in this repository. The guardrail hook reads this section; a missing or invalid manifest denies every push.",
@@ -225,7 +365,7 @@
       }
     },
     {
-      "description": "A Jira tracker carries the identifiers needed to reach the project; a local one carries none of them.",
+      "description": "A Jira tracker carries the identifiers needed to reach the project and no folder; a local one carries none of the identifiers.",
       "if": {
         "properties": {
           "tracker": {
@@ -241,7 +381,10 @@
       "then": {
         "properties": {
           "tracker": {
-            "required": ["site", "projectKey", "projectId", "boardId", "issueTypes"]
+            "required": ["site", "projectKey", "projectId", "boardId", "issueTypes"],
+            "not": {
+              "required": ["tasksSubfolder"]
+            }
           }
         }
       },

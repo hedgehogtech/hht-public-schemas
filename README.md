@@ -8,7 +8,7 @@ This repository holds the schemas only. It holds no HHT project data, and nothin
 
 | Schema | Current version | Describes |
 | --- | --- | --- |
-| HHT project manifest | v2 | `hhtproject.json`, the per-repository configuration naming a repository's identity, work tracker, documentation mirrors, and Git workflow. |
+| HHT project manifest | v2 | `hhtproject.json`, the per-repository configuration naming a repository's identity, work tracker, documentation folders and their Confluence mirrors, and Git workflow. |
 
 Every schema is written against [JSON Schema draft 2020-12](https://json-schema.org/draft/2020-12/schema).
 
