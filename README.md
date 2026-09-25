@@ -8,7 +8,7 @@ This repository holds the schemas only. It holds no HHT project data, and nothin
 
 | Schema | Current version | Describes |
 | --- | --- | --- |
-| HHT project manifest | v1 | `hhtproject.json`, the per-repository configuration naming a repository's identity, work tracker, design document location, and Git workflow. |
+| HHT project manifest | v2 | `hhtproject.json`, the per-repository configuration naming a repository's identity, work tracker, documentation mirrors, and Git workflow. |
 
 Every schema is written against [JSON Schema draft 2020-12](https://json-schema.org/draft/2020-12/schema).
 
@@ -28,15 +28,15 @@ Each schema versions independently, so the schema name comes before the version.
 Reference a schema by its URL, which is also its `$id`:
 
 ```
-https://raw.githubusercontent.com/hedgehogtech/hht-public-schemas/main/json/hhtproject/v1/hhtproject.schema.json
+https://raw.githubusercontent.com/hedgehogtech/hht-public-schemas/main/json/hhtproject/v2/hhtproject.schema.json
 ```
 
 Point an editor at it from inside the document being validated:
 
 ```json
 {
-  "$schema": "https://raw.githubusercontent.com/hedgehogtech/hht-public-schemas/main/json/hhtproject/v1/hhtproject.schema.json",
-  "schemaVersion": 1,
+  "$schema": "https://raw.githubusercontent.com/hedgehogtech/hht-public-schemas/main/json/hhtproject/v2/hhtproject.schema.json",
+  "schemaVersion": 2,
   "repository": "hedgehogtech/example-repo"
 }
 ```
@@ -44,7 +44,7 @@ Point an editor at it from inside the document being validated:
 Validate from the command line with [check-jsonschema](https://github.com/python-jsonschema/check-jsonschema):
 
 ```bash
-check-jsonschema --schemafile https://raw.githubusercontent.com/hedgehogtech/hht-public-schemas/main/json/hhtproject/v1/hhtproject.schema.json hhtproject.json
+check-jsonschema --schemafile https://raw.githubusercontent.com/hedgehogtech/hht-public-schemas/main/json/hhtproject/v2/hhtproject.schema.json hhtproject.json
 ```
 
 Or with [ajv-cli](https://github.com/ajv-validator/ajv-cli), against a local copy:
@@ -61,7 +61,7 @@ Substituting a commit SHA for `main` in the URL pins the exact bytes. A frozen v
 
 The major version is in the URL. A schema change that would reject a document the previous version accepted publishes as a new `v<major>` directory alongside the old one, which keeps working unchanged. Additive changes that leave every existing document valid are made in place, and `CHANGELOG.md` records them.
 
-`hhtproject.json` also carries `schemaVersion` as a field, currently `1`, mirroring the directory it validates against. A reader checks that field before anything else, so a manifest written against a newer format is reported as a version mismatch rather than as a list of unknown keys.
+`hhtproject.json` also carries `schemaVersion` as a field, currently `2`, mirroring the directory it validates against. A reader checks that field before anything else, so a manifest written against a newer format is reported as a version mismatch rather than as a list of unknown keys.
 
 ## Licence
 
