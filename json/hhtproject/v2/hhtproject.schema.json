@@ -280,13 +280,13 @@
       "maxContains": 1
     },
     "gitWorkflow": {
-      "description": "Which remote-visible Git actions an agent may take in this repository. The guardrail hook reads this section; a missing or invalid manifest denies every push.",
+      "description": "Which remote-visible Git actions an agent may take in this repository. The guardrail hook reads this section; a repository whose manifest is missing or unusable runs as solo.",
       "type": "object",
       "required": ["preset", "defaultBranch", "protectedBranches"],
       "additionalProperties": false,
       "properties": {
         "preset": {
-          "description": "Autonomous push scope: client for a repository a client or external party sees, team for a Hedgehog internal repository, solo for a personal one. Opening a pull request always asks, and merging and force-pushing are always denied.",
+          "description": "Autonomous push scope: solo for a personal repository, under which the agent commits and pushes each verified change on its own, and which a repository with no usable manifest also runs as; team for a Hedgehog internal repository; client for a repository a client or external party sees. Opening a pull request always asks, merging is always denied, and the only force-push permitted is --force-with-lease with --force-if-includes to a feature branch.",
           "type": "string",
           "enum": ["client", "team", "solo"]
         },
